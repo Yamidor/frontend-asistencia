@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import Webcam from "react-webcam";
 import axios from "axios";
-import Swal from "sweetalert2";
 
 const API_URL = "http://localhost:8000";
 
@@ -9,11 +8,9 @@ function App() {
   const [mode, setMode] = useState("recognize");
   const [message, setMessage] = useState("");
   const [recognizedUser, setRecognizedUser] = useState(null);
-  const [grades, setGrades] = useState({});
   const webcamRef = useRef(null);
 
   const [formData, setFormData] = useState({
-    document_number: "",
     first_name: "",
     last_name: "",
     email: "",
@@ -63,47 +60,14 @@ function App() {
     }
   };
 
-  const checkDocument = async (documentNumber) => {
-    try {
-      const response = await axios.get(
-        `${API_URL}/check-document/${documentNumber}`
-      );
-      if (response.data.exists) {
-        setMessage("Este documento ya está registrado");
-        return true;
-      }
-      setMessage("");
-      return false;
-    } catch (error) {
-      console.error("Error checking document:", error);
-      return false;
-    }
-  };
-
-  useEffect(() => {
-    const fetchGrades = async () => {
-      if (formData.role_id === "3") {
-        try {
-          const response = await axios.get(`${API_URL}/grades/levels`);
-          console.log(response.data);
-          setGrades(response.data);
-        } catch (error) {
-          console.error("Error fetching grades:", error);
-        }
-      }
-    };
-    fetchGrades();
-  }, [formData.role_id]);
-
   const registerUser = async (e) => {
     e.preventDefault();
-
-    const documentExists = await checkDocument(formData.document_number);
-    if (documentExists) return;
-
     const imageSrc = webcamRef.current?.getScreenshot();
 
     if (!imageSrc) {
+      console.error(
+        "No se pudo capturar la imagen. Asegúrate de que la cámara esté funcionando."
+      );
       setMessage("Error al capturar la imagen. Verifica la cámara.");
       return;
     }
@@ -113,52 +77,8 @@ function App() {
       (res) => res.blob()
     );
 
-    // Obtener nombre de grado
-    const getSelectedGradeName = () => {
-      if (formData.role_id === "3" && formData.grade_id) {
-        for (const level in grades) {
-          const gradeList = grades[level];
-          const grade = gradeList.find(
-            (g) => g.id.toString() === formData.grade_id
-          );
-          if (grade) return grade.name;
-        }
-      }
-      return "N/A";
-    };
-
-    // Preview antes de registrar
-    const result = await Swal.fire({
-      title: "Confirmar Registro",
-      html: `
-        <div class="text-left">
-          <p><strong>Documento:</strong> ${formData.document_number}</p>
-          <p><strong>Nombre:</strong> ${formData.first_name} ${
-        formData.last_name
-      }</p>
-          <p><strong>Email:</strong> ${formData.email}</p>
-          <p><strong>Rol:</strong> ${getRoleName(formData.role_id)}</p>
-          ${
-            formData.role_id === "3"
-              ? `<p><strong>Grado:</strong> ${getSelectedGradeName()}</p>`
-              : ""
-          }
-        </div>
-        <img src="${imageSrc}" class="mx-auto mt-4" style="max-width: 300px;">
-      `,
-      showCancelButton: true,
-      confirmButtonText: "Confirmar",
-      cancelButtonText: "Cancelar",
-      customClass: {
-        popup: "w-auto max-w-lg",
-      },
-    });
-
-    if (!result.isConfirmed) return;
-
     const userData = new FormData();
     const userObject = {
-      document_number: formData.document_number,
       first_name: formData.first_name,
       last_name: formData.last_name,
       email: formData.email,
@@ -170,20 +90,13 @@ function App() {
     userData.append("face_image", blob, "face.jpg");
 
     try {
-      const response = await axios.post(`${API_URL}/users/`, userData, {
+      await axios.post(`${API_URL}/users/`, userData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
-
-      await Swal.fire({
-        icon: "success",
-        title: "Usuario Registrado",
-        text: "Usuario registrado exitosamente",
-      });
-
+      setMessage("Usuario registrado exitosamente");
       setFormData({
-        document_number: "",
         first_name: "",
         last_name: "",
         email: "",
@@ -191,25 +104,16 @@ function App() {
         grade_id: "",
       });
     } catch (error) {
-      await Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: error.response?.data?.detail || "Error al registrar usuario",
-      });
+      setMessage("Error al registrar usuario");
       console.error("Error:", error);
     }
   };
 
-  const handleInputChange = async (e) => {
-    const { name, value } = e.target;
+  const handleInputChange = (e) => {
     setFormData({
       ...formData,
-      [name]: value,
+      [e.target.name]: e.target.value,
     });
-
-    if (name === "document_number" && value.length > 5) {
-      await checkDocument(value);
-    }
   };
 
   useEffect(() => {
@@ -222,68 +126,23 @@ function App() {
     return () => clearInterval(interval);
   }, [mode]);
 
-  const getRoleName = (roleId) => {
-    const roles = {
-      1: "Directivo",
-      2: "Administrativo",
-      3: "Estudiante",
-      4: "Docente",
-    };
-    return roles[roleId] || "Rol desconocido";
-  };
-
-  const getGradeName = (gradeId) => {
-    // Verificar si grades está definido y no está vacío
-    if (!grades || Object.keys(grades).length === 0) {
-      return "Grado no disponible";
-    }
-
-    // Buscar en todos los niveles de grados
-    const levels = ["prescolar", "primaria", "secundaria", "media"];
-
-    for (const level of levels) {
-      const gradeList = grades[level];
-
-      // Verificar si la lista de grados existe
-      if (gradeList && Array.isArray(gradeList)) {
-        const grade = gradeList.find(
-          (g) => g.id.toString() === gradeId.toString()
-        );
-
-        if (grade) return grade.name;
-      }
-    }
-
-    return "Grado no encontrado";
-  };
-
   const UserInfo = ({ user }) => {
     if (!user) return null;
 
-    const gradeName = user.grade_id
-      ? getGradeName(user.grade_id.toString())
-      : "N/A";
-
-    // Para mostrar la imagen de perfil, necesitas convertir la imagen base64
-    const userImage = user.face_image.startsWith("data:image")
-      ? user.face_image
-      : `data:image/jpeg;base64,${user.face_image}`;
+    const getRoleName = (roleId) => {
+      const roles = {
+        1: "Directivo",
+        2: "Administrativo",
+        3: "Estudiante",
+        4: "Docente",
+      };
+      return roles[roleId] || "Rol desconocido";
+    };
 
     return (
       <div className="bg-white p-6 rounded-lg shadow-lg">
         <h2 className="text-2xl font-bold mb-4">¡Bienvenido!</h2>
-        {user.face_image && (
-          <img
-            src={userImage}
-            alt="Foto de usuario"
-            className="w-48 h-48 object-cover rounded-lg mx-auto mb-4"
-          />
-        )}
         <div className="space-y-2">
-          <p>
-            <span className="font-semibold">Documento:</span>{" "}
-            {user.document_number}
-          </p>
           <p>
             <span className="font-semibold">Nombre:</span> {user.first_name}{" "}
             {user.last_name}
@@ -297,7 +156,7 @@ function App() {
           </p>
           {user.grade_id && (
             <p>
-              <span className="font-semibold">Grado:</span> {gradeName}
+              <span className="font-semibold">Grado:</span> {user.grade_id}
             </p>
           )}
           <p>
@@ -309,7 +168,6 @@ function App() {
     );
   };
 
-  // El resto del código del componente se mantiene igual
   return (
     <div className="min-h-screen bg-gray-100 py-6">
       <div className="max-w-7xl mx-auto px-4">
@@ -348,6 +206,7 @@ function App() {
         </div>
 
         <div className="flex flex-wrap md:flex-nowrap gap-8">
+          {/* Lado izquierdo - Cámara */}
           <div className="w-full md:w-1/2">
             <div className="bg-white p-6 rounded-lg shadow-lg">
               <Webcam
@@ -380,20 +239,12 @@ function App() {
             </div>
           </div>
 
+          {/* Lado derecho - Formulario o Información del Usuario */}
           <div className="w-full md:w-1/2">
             {mode === "register" ? (
               <div className="bg-white p-6 rounded-lg shadow-lg">
                 <h2 className="text-2xl font-bold mb-6">Registro de Usuario</h2>
                 <form onSubmit={registerUser} className="space-y-4">
-                  <input
-                    type="text"
-                    name="document_number"
-                    placeholder="Número de Documento"
-                    value={formData.document_number}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
                   <input
                     type="text"
                     name="first_name"
@@ -435,24 +286,15 @@ function App() {
                     <option value="4">Docente</option>
                   </select>
                   {formData.role_id === "3" && (
-                    <select
+                    <input
+                      type="text"
                       name="grade_id"
+                      placeholder="Grado"
                       value={formData.grade_id}
                       onChange={handleInputChange}
                       className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       required
-                    >
-                      <option value="">Seleccionar Grado</option>
-                      {Object.entries(grades).map(([level, gradeList]) => (
-                        <optgroup key={level} label={level}>
-                          {gradeList.map((grade) => (
-                            <option key={grade.id} value={grade.id}>
-                              {grade.name}
-                            </option>
-                          ))}
-                        </optgroup>
-                      ))}
-                    </select>
+                    />
                   )}
                   <button
                     type="submit"
