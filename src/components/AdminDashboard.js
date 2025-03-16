@@ -28,7 +28,7 @@ const AdminDashboard = () => {
   const fetchAttendanceData = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`http://localhost:8000/attendance/`, {
+      const response = await axios.get(`${process.env.REACT_APP_API_URL}/attendance/`, {
         params: {
           start_date: dateRange.start,
           end_date: dateRange.end,

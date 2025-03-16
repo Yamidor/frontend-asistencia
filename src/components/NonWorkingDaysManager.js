@@ -14,7 +14,7 @@ const NonWorkingDaysManager = () => {
 
   const fetchNonWorkingDays = async () => {
     try {
-      const response = await fetch("http://localhost:8000/non-working-days/");
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/non-working-days/`);
       const data = await response.json();
       setNonWorkingDays(Array.isArray(data) ? data : []);
       setLoading(false);
@@ -74,7 +74,7 @@ const NonWorkingDaysManager = () => {
   const handleDeleteDay = async (id) => {
     try {
       const response = await fetch(
-        `http://localhost:8000/non-working-days/${id}`,
+        `${process.env.REACT_APP_API_URL}/non-working-days/${id}`,
         {
           method: "DELETE",
         }
@@ -92,12 +92,12 @@ const NonWorkingDaysManager = () => {
 
   const groupedDays = Array.isArray(nonWorkingDays)
     ? nonWorkingDays.reduce((acc, day) => {
-        if (!acc[day.type]) {
-          acc[day.type] = [];
-        }
-        acc[day.type].push(day);
-        return acc;
-      }, {})
+      if (!acc[day.type]) {
+        acc[day.type] = [];
+      }
+      acc[day.type].push(day);
+      return acc;
+    }, {})
     : {};
 
   const Modal = ({ isOpen, onClose, children }) => {

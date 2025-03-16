@@ -3,7 +3,7 @@ import Webcam from "react-webcam";
 import axios from "axios";
 import Swal from "sweetalert2";
 
-const API_URL = "http://localhost:8000";
+const API_URL = process.env.REACT_APP_API_URL;
 
 const AttendanceSystem = () => {
   const [mode, setMode] = useState("recognize");
@@ -136,16 +136,14 @@ const AttendanceSystem = () => {
       html: `
         <div class="text-left">
           <p><strong>Documento:</strong> ${formData.document_number}</p>
-          <p><strong>Nombre:</strong> ${formData.first_name} ${
-        formData.last_name
-      }</p>
+          <p><strong>Nombre:</strong> ${formData.first_name} ${formData.last_name
+        }</p>
           <p><strong>Email:</strong> ${formData.email}</p>
           <p><strong>Rol:</strong> ${getRoleName(formData.role_id)}</p>
-          ${
-            formData.role_id === "3"
-              ? `<p><strong>Grado:</strong> ${getSelectedGradeName()}</p>`
-              : ""
-          }
+          ${formData.role_id === "3"
+          ? `<p><strong>Grado:</strong> ${getSelectedGradeName()}</p>`
+          : ""
+        }
         </div>
         <img src="${imageSrc}" class="mx-auto mt-4" style="max-width: 300px;">
       `,
@@ -341,11 +339,10 @@ const AttendanceSystem = () => {
               setMode("recognize");
               setMessage("");
             }}
-            className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-              mode === "recognize"
+            className={`px-6 py-3 rounded-lg font-semibold transition-colors ${mode === "recognize"
                 ? "bg-blue-600 text-white"
                 : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-            }`}
+              }`}
           >
             Modo Reconocimiento
           </button>
@@ -355,11 +352,10 @@ const AttendanceSystem = () => {
               setMessage("");
               setRecognizedUser(null);
             }}
-            className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-              mode === "register"
+            className={`px-6 py-3 rounded-lg font-semibold transition-colors ${mode === "register"
                 ? "bg-blue-600 text-white"
                 : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-            }`}
+              }`}
           >
             Modo Registro
           </button>
@@ -385,12 +381,11 @@ const AttendanceSystem = () => {
 
               {message && (
                 <div
-                  className={`mt-4 text-center p-4 rounded-lg ${
-                    message.includes("Error") ||
-                    message.includes("no reconocida")
+                  className={`mt-4 text-center p-4 rounded-lg ${message.includes("Error") ||
+                      message.includes("no reconocida")
                       ? "bg-red-100 text-red-700"
                       : "bg-green-100 text-green-700"
-                  }`}
+                    }`}
                 >
                   {message}
                 </div>
@@ -475,11 +470,10 @@ const AttendanceSystem = () => {
                   <button
                     type="submit"
                     disabled={isDocumentExists}
-                    className={`w-full py-3 px-6 text-white rounded-lg font-semibold shadow-md transition-colors ${
-                      isDocumentExists
+                    className={`w-full py-3 px-6 text-white rounded-lg font-semibold shadow-md transition-colors ${isDocumentExists
                         ? "bg-gray-400 cursor-not-allowed"
                         : "bg-blue-600 hover:bg-blue-700"
-                    }`}
+                      }`}
                   >
                     Registrar Usuario
                   </button>
