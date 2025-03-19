@@ -43,7 +43,7 @@ const NonWorkingDaysManager = () => {
         type: newDay.type,
       });
 
-      const response = await fetch("http://localhost:8000/non-working-days/", {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/non-working-days/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
